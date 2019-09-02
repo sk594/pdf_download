@@ -1,6 +1,8 @@
 const express = require('express');
 const app = express();
 var http = require('http');
+const excel = require('exceljs');
+
 // const mysql = require('mysql');
 var multer = require('multer');
 var upload = multer();
@@ -75,8 +77,45 @@ app.get("/data", (req, res) => {
 
   }}
 )});
+app.get("/download/excel", function (req, res) {
 
+        // -> Query data from MySQL
+        con.query("SELECT * FROM risk_Record", function (err, risk, fields) {
+            if (err) throw err;
 
+            const jsonCustomers = JSON.parse(JSON.stringify(risk));
+            console.log(jsonCustomers);
+            /**
+                [ { id: 1, address: 'Jack Smith', age: 23, name: 'Massachusetts' },
+                  { id: 2, address: 'Adam Johnson', age: 27, name: 'New York' },
+                  { id: 3, address: 'Katherin Carter', age: 26, name: 'Washington DC' },
+                  { id: 4, address: 'Jack London', age: 33, name: 'Nevada' },
+                  { id: 5, address: 'Jason Bourne', age: 36, name: 'California' } ]
+            */
+
+            let workbook = new excel.Workbook(); //creating workbook
+            let worksheet = workbook.addWorksheet('Risk'); //creating worksheet
+
+            //  WorkSheet Header
+            worksheet.columns = [  { header: 'Name', key: 'name1', width: 30 },
+                { header: 'Id', key: 'id', width: 10 },
+
+                { header: 'Address', key: 'address', width: 30},
+            ];
+
+            // Add Array Rows
+            worksheet.addRows(jsonCustomers);
+
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            res.setHeader('Content-Disposition', 'attachment; filename=' + 'risk.xlsx');
+
+            return workbook.xlsx.write(res)
+                  .then(function() {
+                        res.status(200).end();
+                  });
+        });
+
+});
 
 app.listen(3000, (req, res) => {
   console.log("server run on port no 3000")
